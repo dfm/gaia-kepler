@@ -37,14 +37,13 @@ Cross-matching
 To match the confirmed exoplanets catalog (from the exoplanet archive) to
 TGAS, try the following:
 
-```
-from gaia_kepler import data, tgas_match
+.. code-block:: python
+    from gaia_kepler import data, tgas_match
 
-exoplanets = data.ExoplanetCatalog().df
-matched = tgas_match(exoplanets)
+    exoplanets = data.ExoplanetCatalog().df
+    matched = tgas_match(exoplanets)
 
-print(len(matched))
-```
+    print(len(matched))
 
 This should print ``652`` as of 2016-10-14.
 
@@ -58,16 +57,14 @@ Eclipsing binary catalog
 The EB catalog doesn't include RA and Dec columns so to cross-match it takes
 one extra step:
 
-```
-import pandas as pd
-from gaia_kepler import data, tgas_match
+.. code-block:: python
+    import pandas as pd
+    from gaia_kepler import data, tgas_match
 
-kic = data.KICatalog().df
-ebs = pd.merge(data.EBCatalog().df, kic[["kepid", "ra", "dec"]],
-               left_on="#KIC", right_on="kepid")
-matched = tgas_match(ebs)
+    kic = data.KICatalog().df
+    ebs = pd.merge(data.EBCatalog().df, kic[["kepid", "ra", "dec"]], on="kepid")
+    matched = tgas_match(ebs)
 
-print(len(matched))
-```
+    print(len(matched))
 
 This should print ``325``.
