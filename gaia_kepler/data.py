@@ -15,15 +15,17 @@ import pandas as pd
 from six.moves import urllib
 
 __all__ = [
-    "KICatalog",            # Kepler input catalog
+    "KICatalog",             # Kepler input catalog
 
-    "EBCatalog",            # Villanova EB catalog
-    "KOICatalog",           # DR24 KOI catalog
-    "CumulativeCatalog",    # Cumulative KOI catalog
-    "ExoplanetCatalog",     # Confirmed planet catalog
+    "EBCatalog",             # Villanova EB catalog
+    "KOICatalog",            # DR24 KOI catalog
+    "CumulativeCatalog",     # Cumulative KOI catalog
+    "ExoplanetCatalog",      # Confirmed planet catalog
 
-    "EPICatalog",           # K2 input catalog
-    "K2CandidatesCatalog",  # K2 input catalog
+    "EPICatalog",            # K2 input catalog
+    "K2CandidatesCatalog",   # K2 input catalog
+
+    "TGASDistancesCatalog",  # Distance estimate catalog
 ]
 
 
@@ -35,7 +37,7 @@ GAIA_KEPLER_DATA = os.environ.get(
 
 def download(clobber=False):
     for c in (KICatalog, KOICatalog, CumulativeCatalog, ExoplanetCatalog,
-              EPICatalog, K2CandidatesCatalog):
+              EPICatalog, K2CandidatesCatalog, TGASDistancesCatalog):
         print("Downloading {0}...".format(c.cls.__name__))
         c().fetch(clobber=clobber)
 
@@ -93,6 +95,23 @@ class Catalog(object):
                 self.fetch()
             self._df = pd.read_hdf(self.filename, self.name)
         return self._df
+
+
+class TGASDistancesCatalog(Catalog):
+    name = "tgas_dist"
+    url = ("http://www2.mpia-hd.mpg.de/homes/calj/tgas_distances"
+           "/tgas_dist_all_withsys_v01.csv.gz")
+
+    def _save_fetched_file(self, file_handle):
+        names = [
+            "HIPId", "Tycho2", "SourceId", "LDeg", "BGed", "varpi",
+            "errVarpi", "GMag", "rMoExp1", "r5Exp1", "r50Exp1", "r95Exp1",
+            "sigmaRExp1", "rMoExp2", "r5Exp2", "r50Exp2", "r95Exp2",
+            "sigmaRExp2", "rMoMW", "r5MW", "r50MW", "r95MW", "sigmaRMW",
+        ]
+        df = pd.read_csv(file_handle, compression="gzip", header=0,
+                         names=names)
+        df.to_hdf(self.filename, self.name, format="t")
 
 
 class ExoplanetArchiveCatalog(Catalog):
@@ -173,7 +192,10 @@ class LocalCatalog(object):
 
 class EBCatalog(LocalCatalog):
     filename = "ebs.csv"
-    args = dict(skiprows=7)
+    args = dict(skiprows=7, header=0, names=[
+        "kepid", "period", "period_err", "bjd0", "bjd0_err", "morph",
+        "GLon", "GLat", "kmag", "Teff", "SC", "",
+    ])
 
 class singleton(object):
 
@@ -197,3 +219,5 @@ ExoplanetCatalog = singleton(ExoplanetCatalog)
 
 EPICatalog = singleton(EPICatalog)
 K2CandidatesCatalog = singleton(K2CandidatesCatalog)
+
+TGASDistancesCatalog = singleton(TGASDistancesCatalog)
