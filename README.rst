@@ -15,7 +15,7 @@ and the ``gaia_tools`` package (see below) requires fitsio, astropy.
 This tool uses `Jo Bovy's gaia_tools <https://github.com/jobovy/gaia_tools>`_
 package to interface with the TGAS data. To get started with ``gaia_tools``:
 
-1. Install the `gaia_tools <https://github.com/jobovy/gaia_tools>` package,
+1. Install the `gaia_tools <https://github.com/jobovy/gaia_tools>`_ package,
 2. Set the ``GAIA_TOOLS_DATA`` environment variable, and
 3. Run ``python -c 'import gaia_tools.load as gload;gload.tgas()'`` to
    download the TGAS catalog.
@@ -66,3 +66,10 @@ one extra step:::
     print(len(matched))
 
 This should print ``325``.
+
+
+More
+----
+
+For more details, look at the `demo notebook
+<https://github.com/dfm/gaia-kepler/blob/master/demo.ipynb>`_.
