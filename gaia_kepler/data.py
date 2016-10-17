@@ -25,6 +25,8 @@ __all__ = [
     "EPICatalog",            # K2 input catalog
     "K2CandidatesCatalog",   # K2 input catalog
 
+    "AsteroGiantCatalog",    # Pinsonneault+ (2014) asterosesmic catalog
+
     "TGASDistancesCatalog",  # Distance estimate catalog
 ]
 
