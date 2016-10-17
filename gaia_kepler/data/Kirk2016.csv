@@ -1,9 +1,11 @@
 ##
+## CITATION: http://adsabs.harvard.edu/abs/2016AJ....151...68K
+##
 ## Kepler Eclipsing Binary Catalog
 ## Revision Date (Y/M/D): Aug. 9, 2016, 10:12 a.m.
-## Download Date (Y/M/D): 
+## Download Date (Y/M/D):
 ##
-## Query String: 
+## Query String:
 ##
 #KIC,period,period_err,bjd0,bjd0_err,morph,GLon,GLat,kmag,Teff,SC,
 10417986,0.0737309,0.0000000,55000.027476,0.004231,0.99,81.0390,11.0820,9.1280,-1.0000,True,

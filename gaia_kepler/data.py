@@ -191,11 +191,15 @@ class LocalCatalog(object):
         return self._df
 
 class EBCatalog(LocalCatalog):
-    filename = "ebs.csv"
-    args = dict(skiprows=7, header=0, names=[
+    filename = "Kirk2016.csv"
+    args = dict(skiprows=7, header=0, comment="#", names=[
         "kepid", "period", "period_err", "bjd0", "bjd0_err", "morph",
         "GLon", "GLat", "kmag", "Teff", "SC", "",
     ])
+
+class AsteroGiantCatalog(LocalCatalog):
+    filename = "Pinsonneault2014.tsv"
+    args = dict(sep="|", comment="#", skipinitialspace=True)
 
 class singleton(object):
 
@@ -219,5 +223,7 @@ ExoplanetCatalog = singleton(ExoplanetCatalog)
 
 EPICatalog = singleton(EPICatalog)
 K2CandidatesCatalog = singleton(K2CandidatesCatalog)
+
+AsteroGiantCatalog = singleton(AsteroGiantCatalog)
 
 TGASDistancesCatalog = singleton(TGASDistancesCatalog)
