@@ -1,20 +1,23 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import os
+
 try:
     from setuptools import setup
 except ImportError:
     from distutils.core import setup
 
 setup(
-    name="gaia-kepler",
+    name="gaia_kepler",
     author="Daniel Foreman-Mackey",
     author_email="danfm@nyu.edu",
     packages=["gaia_kepler"],
     url="https://github.com/dfm/gaia-kepler",
     license="MIT",
     description="A cross match of the Gaia and Kepler catalog",
-    package_data={"": ["LICENSE"]},
+    package_data={"": ["LICENSE"],
+                  "gaia_kepler": [os.path.join("data", "*.csv")]},
     include_package_data=True,
     install_requires=["numpy", "scipy", "pandas", "six", "gaia_tools"],
     classifiers=[
