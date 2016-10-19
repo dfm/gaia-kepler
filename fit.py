@@ -169,7 +169,7 @@ def fit_star(star, verbose=False):
         f.create_dataset("computed_parameters", data=computed_parameters)
 
     # Plot
-    fig = corner.corner(samples)
+    fig = corner.corner(samples, labels=fit_parameters.dtype.names)
     fig.savefig("corner-{0}.png".format(star.kepid))
     plt.close(fig)
 
@@ -186,5 +186,4 @@ with MPIPool() as pool:
 
     # Fit in batches
     rows = [star for _, star in kic_tgas.iterrows()]
-    print(rows)
     list(pool.map(fit_star, rows))
