@@ -6,7 +6,6 @@ from __future__ import division, print_function
 import time
 import tqdm
 import numpy as np
-import pandas as pd
 
 import emcee3
 import corner
@@ -14,8 +13,10 @@ import corner
 from isochrones import StarModel
 from isochrones.mist import MIST_Isochrone
 
+from gaia_kepler import data
+
 # Load the data
-kic_tgas = pd.read_csv("kic_photo_match.csv")
+kic_tgas = data.KICPhotoXMatchCatalog().df
 kic_tgas["parallax_snr"] = kic_tgas.tgas_parallax/kic_tgas.tgas_parallax_error
 kic_tgas = kic_tgas.sort_values("parallax_snr")
 kic_tgas = kic_tgas[kic_tgas.parallax_snr > 10.0]
