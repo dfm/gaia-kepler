@@ -27,9 +27,6 @@ def fit_star(star, verbose=False):
     if os.path.exists(output_filename):
         return
 
-    time.sleep(30)
-    return
-
     strt = time.time()
 
     # The KIC parameters
@@ -140,7 +137,7 @@ def fit_star(star, verbose=False):
         print("Discarding {0} samples for burn-in".format(burnin))
         print("Randomly choosing {0} samples".format(ntot))
     samples = sampler.get_coords(flat=True, discard=burnin)
-    total_samples = len(total_samples)
+    total_samples = len(samples)
     inds = np.random.choice(np.arange(len(samples)), size=ntot, replace=False)
     samples = samples[inds]
 
@@ -172,7 +169,7 @@ def fit_star(star, verbose=False):
         f.create_dataset("computed_parameters", data=computed_parameters)
 
     # Plot
-    fig = corner.corner(samples)
+    fig = corner.corner(samples, labels=fit_parameters.dtype.names)
     fig.savefig("corner-{0}.png".format(star.kepid))
     plt.close(fig)
 
@@ -189,5 +186,4 @@ with MPIPool() as pool:
 
     # Fit in batches
     rows = [star for _, star in kic_tgas.iterrows()]
-    print(rows)
     list(pool.map(fit_star, rows))
