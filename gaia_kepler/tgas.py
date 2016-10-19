@@ -9,7 +9,7 @@ import gaia_tools.load as gload
 __all__ = ["tgas_match"]
 
 
-def tgas_match(cat, **kwargs):
+def tgas_match(cat, tgas=None, **kwargs):
     """
     This cross-matches a pandas DataFrame to the TGAS catalog. The first
     argument should be a data frame and the other keyword arguments are passed
@@ -17,7 +17,8 @@ def tgas_match(cat, **kwargs):
 
     """
     # Load the catalogs
-    tgas = gload.tgas()
+    if tgas is None:
+        tgas = gload.tgas()
 
     # Set the default columns
     kwargs["colRA1"] = kwargs.get("colRA1", "ra")
@@ -35,7 +36,10 @@ def tgas_match(cat, **kwargs):
     tgas_matched = tgas[m2]
     for k in tgas_matched.dtype.names:
         # Ugliness to deal with byte ordering
-        matched["tgas_" + k] = tgas_matched[k].byteswap().newbyteorder()
+        if tgas_matched[k].dtype.byteorder in ["=", "|"]:
+            matched["tgas_" + k] = tgas_matched[k]
+        else:
+            matched["tgas_" + k] = tgas_matched[k].byteswap().newbyteorder()
     matched["tgas_match_distance"] = dist
 
     return matched

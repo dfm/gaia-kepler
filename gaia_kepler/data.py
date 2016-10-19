@@ -15,19 +15,20 @@ import pandas as pd
 from six.moves import urllib
 
 __all__ = [
-    "KICatalog",             # Kepler input catalog
+    "KICatalog",               # Kepler input catalog
 
-    "EBCatalog",             # Villanova EB catalog
-    "KOICatalog",            # DR24 KOI catalog
-    "CumulativeCatalog",     # Cumulative KOI catalog
-    "ExoplanetCatalog",      # Confirmed planet catalog
+    "EBCatalog",               # Villanova EB catalog
+    "KOICatalog",              # DR24 KOI catalog
+    "CumulativeCatalog",       # Cumulative KOI catalog
+    "ExoplanetCatalog",        # Confirmed planet catalog
 
-    "EPICatalog",            # K2 input catalog
-    "K2CandidatesCatalog",   # K2 input catalog
+    "EPICatalog",              # K2 input catalog
+    "K2CandidatesCatalog",     # K2 input catalog
 
-    "AsteroGiantCatalog",    # Pinsonneault+ (2014) asterosesmic catalog
+    "AsteroGiantCatalog",      # Pinsonneault+ (2014) asterosesmic catalog
 
-    "TGASDistancesCatalog",  # Distance estimate catalog
+    "TGASDistancesCatalog",    # Distance estimate catalog
+    "KICPhotoXMatchCatalog",   # Cross match between KIC, TGAS, and photometry
 ]
 
 
@@ -152,8 +153,16 @@ class EPICatalog(ExoplanetArchiveCatalog):
     name = "k2targets"
 
     def _save_fetched_file(self, file_handle):
-        with open(self.filename, "wb") as f:
-            f.write(file_handle.read())
+        with open(self.filename, "w") as f:
+            f.write(file_handle.read().decode("utf-8"))
+
+    @property
+    def df(self):
+        if self._df is None:
+            if not os.path.exists(self.filename):
+                self.fetch()
+            self._df = pd.read_csv(self.filename)
+        return self._df
 
 class K2CandidatesCatalog(ExoplanetArchiveCatalog):
     name = "k2candidates"
@@ -203,6 +212,9 @@ class AsteroGiantCatalog(LocalCatalog):
     filename = "Pinsonneault2014.tsv"
     args = dict(sep="|", comment="#", skipinitialspace=True)
 
+class KICPhotoXMatchCatalog(LocalCatalog):
+    filename = "kic_photo_match.csv"
+
 class singleton(object):
 
     def __init__(self, cls):
@@ -229,3 +241,4 @@ K2CandidatesCatalog = singleton(K2CandidatesCatalog)
 AsteroGiantCatalog = singleton(AsteroGiantCatalog)
 
 TGASDistancesCatalog = singleton(TGASDistancesCatalog)
+KICPhotoXMatchCatalog = singleton(KICPhotoXMatchCatalog)
