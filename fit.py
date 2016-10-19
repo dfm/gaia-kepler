@@ -137,7 +137,7 @@ def fit_star(star, verbose=False):
         print("Discarding {0} samples for burn-in".format(burnin))
         print("Randomly choosing {0} samples".format(ntot))
     samples = sampler.get_coords(flat=True, discard=burnin)
-    total_samples = len(total_samples)
+    total_samples = len(samples)
     inds = np.random.choice(np.arange(len(samples)), size=ntot, replace=False)
     samples = samples[inds]
 
