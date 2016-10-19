@@ -131,9 +131,15 @@ class ExoplanetArchiveCatalog(Catalog):
         df.to_hdf(self.filename, self.name, format="t")
 
 class KICatalog(ExoplanetArchiveCatalog):
+    """
+    Kepler Stellar Table (Q1 through Q17)
+    """
     name = "q1_q17_dr24_stellar"
 
 class KOICatalog(ExoplanetArchiveCatalog):
+    """
+    Kepler Kepler Objects of Interest (Q1 through Q17)
+    """
     name = "q1_q17_dr24_koi"
 
     def join_stars(self, df=None):
@@ -143,12 +149,21 @@ class KOICatalog(ExoplanetArchiveCatalog):
         return pd.merge(df, kic.df, on="kepid")
 
 class CumulativeCatalog(ExoplanetArchiveCatalog):
+    """
+    Kepler Objects of Interest (Cumulative)
+    """
     name = "cumulative"
 
 class ExoplanetCatalog(ExoplanetArchiveCatalog):
-    name = "planets"
+    """
+    All confirmed planets
+    """
+    name = "exoplanets"
 
 class EPICatalog(ExoplanetArchiveCatalog):
+    """
+    K2 Targets
+    """
     ext = ".csv"
     name = "k2targets"
 
@@ -165,6 +180,9 @@ class EPICatalog(ExoplanetArchiveCatalog):
         return self._df
 
 class K2CandidatesCatalog(ExoplanetArchiveCatalog):
+    """
+    K2 Candidates
+    """
     name = "k2candidates"
 
 class CatalogDownloadError(Exception):
