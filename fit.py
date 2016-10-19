@@ -27,9 +27,6 @@ def fit_star(star, verbose=False):
     if os.path.exists(output_filename):
         return
 
-    time.sleep(30)
-    return
-
     strt = time.time()
 
     # The KIC parameters
