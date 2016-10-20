@@ -14,28 +14,25 @@ import matplotlib.pyplot as plt
 
 import emcee3
 import corner
-from schwimmbad import MPIPool
 
 from isochrones import StarModel
 from isochrones.mist import MIST_Isochrone
 
 from gaia_kepler import data
 
+
 def fit_star(star, verbose=False):
     output_filename = "{0}.h5".format(star.kepid)
-    logging.info("Output filename: {0}".format(output_filename))
+    logging.warning("Output filename: {0}".format(output_filename))
     if os.path.exists(output_filename):
         return
-
-    time.sleep(30)
-    return
 
     strt = time.time()
 
     # The KIC parameters
     mean_log_mass = np.log(star.mass)
     sigma_log_mass = (np.log(star.mass+star.mass_err1) -
-                    np.log(star.mass+star.mass_err2))  # double the kic value
+                      np.log(star.mass+star.mass_err2))  # double the kic value
     mean_feh = star.feh
     sigma_feh = star.feh_err1 - star.feh_err2  # double the kic value
 
@@ -116,7 +113,7 @@ def fit_star(star, verbose=False):
     ensemble = emcee3.Ensemble(ICModel(), coords_init)
 
     chunksize = 200
-    targetn = 3
+    targetn = 6
     for iteration in range(100):
         if verbose:
             print("Iteration {0}...".format(iteration + 1))
@@ -140,7 +137,7 @@ def fit_star(star, verbose=False):
         print("Discarding {0} samples for burn-in".format(burnin))
         print("Randomly choosing {0} samples".format(ntot))
     samples = sampler.get_coords(flat=True, discard=burnin)
-    total_samples = len(total_samples)
+    total_samples = len(samples)
     inds = np.random.choice(np.arange(len(samples)), size=ntot, replace=False)
     samples = samples[inds]
 
@@ -162,12 +159,13 @@ def fit_star(star, verbose=False):
         computed_parameters[i] = (ic["radius"], ic["Teff"], ic["logg"])
 
     total_time = time.time() - strt
-    logging.info("emcee3 took {0} sec".format(total_time))
+    logging.warning("emcee3 took {0} sec".format(total_time))
 
     with h5py.File(output_filename, "w") as f:
         f.attrs["kepid"] = int(star.kepid)
         f.attrs["neff"] = neff * nwalkers
         f.attrs["runtime"] = total_time
+        f.attrs["total_samples"] = total_samples
         f.create_dataset("fit_parameters", data=fit_parameters)
         f.create_dataset("computed_parameters", data=computed_parameters)
 
@@ -176,18 +174,10 @@ def fit_star(star, verbose=False):
     fig.savefig("corner-{0}.png".format(star.kepid))
     plt.close(fig)
 
-with MPIPool() as pool:
-    if not pool.is_master():
-        pool.wait()
-        sys.exit(0)
-
-    # Load the data
-    kic_tgas = data.KICPhotoXMatchCatalog().df
-    kic_tgas["parallax_snr"] = kic_tgas.tgas_parallax/kic_tgas.tgas_parallax_error
-    kic_tgas = kic_tgas.sort_values("parallax_snr", ascending=False)
-    kic_tgas = kic_tgas[kic_tgas.parallax_snr > 10.0]
-
-    # Fit in batches
-    rows = [star for _, star in kic_tgas.iterrows()]
-    print(rows)
-    list(pool.map(fit_star, rows))
+# Load the data
+kic_tgas = data.KICPhotoXMatchCatalog().df
+kic_tgas["parallax_snr"] = kic_tgas.tgas_parallax/kic_tgas.tgas_parallax_error
+kic_tgas = kic_tgas.sort_values("parallax_snr", ascending=False)
+kic_tgas = kic_tgas[kic_tgas.parallax_snr > 10.0]
+star = kic_tgas.iloc[int(sys.argv[1])]
+fit_star(star)
