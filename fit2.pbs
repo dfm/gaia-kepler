@@ -8,9 +8,7 @@
 
 module purge
 export PATH="$HOME/miniconda3/bin:$PATH"
-module load mvapich2/intel/2.0rc1
 export OMP_NUM_THREADS=1
-
 export ISOCHRONES=$SCRATCH/isochrones_data
 
 SRCDIR=$HOME/projects/gaia-kepler
