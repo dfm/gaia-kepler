@@ -3,8 +3,12 @@
 from __future__ import division, print_function
 
 import pandas as pd
-from gaia_tools import xmatch
-import gaia_tools.load as gload
+
+try:
+    from gaia_tools import xmatch
+    import gaia_tools.load as gload
+except ImportError:
+    xmatch = None
 
 __all__ = ["tgas_match"]
 
@@ -16,6 +20,9 @@ def tgas_match(cat, tgas=None, **kwargs):
     to the ``gaia_tools.xmatch`` function.
 
     """
+    if xmatch is None:
+        raise ImportError("gaia_tools")
+
     # Load the catalogs
     if tgas is None:
         tgas = gload.tgas()
