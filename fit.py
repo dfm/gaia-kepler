@@ -39,33 +39,34 @@ def fit_star(star, verbose=False):
     min_distance, max_distance = 0.0, 3000.0
 
     # Other bands
-    other_bands = dict()
+    bands = dict(
+        J=(star.jmag, star.jmag_err),
+        H=(star.hmag, star.hmag_err),
+        K=(star.kmag, star.kmag_err),
+    )
     if np.isfinite(star.tgas_w1gmag):
-        other_bands = dict(
-            W1=(star.tgas_w1gmag, star.tgas_w1gmag_error),
-            W2=(star.tgas_w2gmag, star.tgas_w2gmag_error),
-            W3=(star.tgas_w3gmag, star.tgas_w3gmag_error),
+        bands = dict(
+            W1=(star.tgas_w1gmag, max(star.tgas_w1gmag_error, 0.02)),
+            W2=(star.tgas_w2gmag, max(star.tgas_w2gmag_error, 0.02)),
+            W3=(star.tgas_w3gmag, max(star.tgas_w3gmag_error, 0.02)),
         )
     if np.isfinite(star.tgas_Vmag):
-        other_bands["V"] = (star.tgas_Vmag, star.tgas_e_Vmag)
+        bands["V"] = (star.tgas_Vmag, max(star.tgas_e_Vmag, 0.02))
     if np.isfinite(star.tgas_Bmag):
-        other_bands["B"] = (star.tgas_Bmag, star.tgas_e_Bmag)
+        bands["B"] = (star.tgas_Bmag, max(star.tgas_e_Bmag, 0.02))
     if np.isfinite(star.tgas_gpmag):
-        other_bands["g"] = (star.tgas_gpmag, star.tgas_e_gpmag)
+        bands["g"] = (star.tgas_gpmag, max(star.tgas_e_gpmag, 0.02))
     if np.isfinite(star.tgas_rpmag):
-        other_bands["r"] = (star.tgas_rpmag, star.tgas_e_rpmag)
+        bands["r"] = (star.tgas_rpmag, max(star.tgas_e_rpmag, 0.02))
     if np.isfinite(star.tgas_ipmag):
-        other_bands["i"] = (star.tgas_ipmag, star.tgas_e_ipmag)
+        bands["i"] = (star.tgas_ipmag, max(star.tgas_e_ipmag, 0.02))
 
     # Build the model
     mist = MIST_Isochrone()
     mod = StarModel(
         mist,
-        J=(star.jmag, star.jmag_err),
-        H=(star.hmag, star.hmag_err),
-        K=(star.kmag, star.kmag_err),
         parallax=(star.tgas_parallax, star.tgas_parallax_error),
-        **other_bands
+        **bands
     )
 
     # Initialize
@@ -148,6 +149,7 @@ def fit_star(star, verbose=False):
     computed_parameters = np.empty(len(samples), dtype=[
         ("radius", float), ("teff", float), ("logg", float),
     ])
+    mags = np.empty(len(samples), dtype=[(b, float) for b in bands.keys()])
 
     if verbose:
         prog = tqdm.tqdm
@@ -157,6 +159,8 @@ def fit_star(star, verbose=False):
         ic = mod.ic(*p)
         fit_parameters[i] = p
         computed_parameters[i] = (ic["radius"], ic["Teff"], ic["logg"])
+        for b in bands.keys():
+            mags[b][i] = ic[b]
 
     total_time = time.time() - strt
     logging.warning("emcee3 took {0} sec".format(total_time))
@@ -166,8 +170,10 @@ def fit_star(star, verbose=False):
         f.attrs["neff"] = neff * nwalkers
         f.attrs["runtime"] = total_time
         f.attrs["total_samples"] = total_samples
+        f.attrs["bands"] = bands
         f.create_dataset("fit_parameters", data=fit_parameters)
         f.create_dataset("computed_parameters", data=computed_parameters)
+        f.create_dataset("magnitudes", data=mags)
 
     # Plot
     fig = corner.corner(samples)
