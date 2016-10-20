@@ -164,7 +164,7 @@ def fit_star(star, verbose=False):
         fit_parameters[i] = p
         computed_parameters[i] = (ic["radius"], ic["Teff"], ic["logg"])
         for b in bands.keys():
-            mags[b][i] = ic[b]
+            mags[b][i] = ic[b+"_mag"]
 
     total_time = time.time() - strt
     print("emcee3 took {0} sec".format(total_time))
@@ -174,7 +174,9 @@ def fit_star(star, verbose=False):
         f.attrs["neff"] = neff * nwalkers
         f.attrs["runtime"] = total_time
         f.attrs["total_samples"] = total_samples
-        f.attrs["bands"] = bands
+        for k, (v, e) in bands.items():
+            f.attrs[k+"_mag"] = v
+            f.attrs[k+"_mag_err"] = e
         f.create_dataset("fit_parameters", data=fit_parameters)
         f.create_dataset("computed_parameters", data=computed_parameters)
         f.create_dataset("magnitudes", data=mags)
