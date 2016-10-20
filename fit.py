@@ -240,7 +240,7 @@ args = parser.parse_args()
 kic_tgas = data.KICPhotoXMatchCatalog().df
 kic_tgas["parallax_snr"] = kic_tgas.tgas_parallax/kic_tgas.tgas_parallax_error
 if args.kepid:
-    star = kic_tgas[kic_tgas.kepid == args.number].iloc[0]
+    star = kic_tgas[kic_tgas.kepid == args.kepid].iloc[0]
 else:
     kic_tgas = kic_tgas.sort_values("parallax_snr", ascending=False)
     kic_tgas = kic_tgas[kic_tgas.parallax_snr > 10.0]
