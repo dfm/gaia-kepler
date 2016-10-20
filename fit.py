@@ -9,6 +9,7 @@ import h5py
 import time
 import tqdm
 import logging
+import argparse
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -23,7 +24,6 @@ from gaia_kepler import data
 
 def fit_star(star, verbose=False):
     output_filename = "{0}.h5".format(star.kepid)
-    logging.warning("Output filename: {0}".format(output_filename))
     if os.path.exists(output_filename):
         return
 
@@ -75,6 +75,8 @@ def fit_star(star, verbose=False):
     lnpost_init = -np.inf + np.zeros(nwalkers)
     coords_init = np.empty((nwalkers, ndim))
     m = ~np.isfinite(lnpost_init)
+    if verbose:
+        print("Initializing...")
     while np.any(m):
         K = m.sum()
 
@@ -99,6 +101,8 @@ def fit_star(star, verbose=False):
 
         lnpost_init[m] = np.array(list(map(mod.lnpost, coords_init[m])))
         m = ~np.isfinite(lnpost_init)
+        if verbose:
+            print("Resampling {0} points".format(m.sum()))
 
     class ICModel(emcee3.Model):
 
@@ -163,7 +167,7 @@ def fit_star(star, verbose=False):
             mags[b][i] = ic[b]
 
     total_time = time.time() - strt
-    logging.warning("emcee3 took {0} sec".format(total_time))
+    print("emcee3 took {0} sec".format(total_time))
 
     with h5py.File(output_filename, "w") as f:
         f.attrs["kepid"] = int(star.kepid)
@@ -180,10 +184,15 @@ def fit_star(star, verbose=False):
     fig.savefig("corner-{0}.png".format(star.kepid))
     plt.close(fig)
 
+parser = argparse.ArgumentParser()
+parser.add_argument("number", type=int)
+parser.add_argument("--verbose", action="store_true")
+args = parser.parse_args()
+
 # Load the data
 kic_tgas = data.KICPhotoXMatchCatalog().df
 kic_tgas["parallax_snr"] = kic_tgas.tgas_parallax/kic_tgas.tgas_parallax_error
 kic_tgas = kic_tgas.sort_values("parallax_snr", ascending=False)
 kic_tgas = kic_tgas[kic_tgas.parallax_snr > 10.0]
-star = kic_tgas.iloc[int(sys.argv[1])]
-fit_star(star)
+star = kic_tgas.iloc[args.number]
+fit_star(star, verbose=args.verbose)
