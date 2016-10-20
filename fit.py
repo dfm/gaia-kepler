@@ -11,6 +11,7 @@ import tqdm
 import logging
 import argparse
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 
 import emcee3
@@ -22,9 +23,16 @@ from isochrones.mist import MIST_Isochrone
 from gaia_kepler import data
 
 
-def fit_star(star, verbose=False):
-    output_filename = "{0}.h5".format(star.kepid)
+def fit_star(star, verbose=False, fit_parallax=True):
+    if fit_parallax is False:
+        basename = "{0}-no-parallax".format(star.kepid)
+    else:
+        basename = "{0}".format(star.kepid)
+    if verbose:
+        print("Basename: {0}".format(basename))
+    output_filename = basename + ".h5"
     if os.path.exists(output_filename):
+        make_plots(star, basename)
         return
 
     strt = time.time()
@@ -44,11 +52,11 @@ def fit_star(star, verbose=False):
         H=(star.hmag, star.hmag_err),
         K=(star.kmag, star.kmag_err),
     )
-    if np.isfinite(star.tgas_w1gmag):
-        bands = dict(
-            W1=(star.tgas_w1gmag, max(star.tgas_w1gmag_error, 0.02)),
-            W2=(star.tgas_w2gmag, max(star.tgas_w2gmag_error, 0.02)),
-            W3=(star.tgas_w3gmag, max(star.tgas_w3gmag_error, 0.02)),
+    if np.isfinite(star.tgas_w1mpro):
+        bands = dict(bands,
+            W1=(star.tgas_w1mpro, max(star.tgas_w1mpro_error, 0.02)),
+            W2=(star.tgas_w2mpro, max(star.tgas_w2mpro_error, 0.02)),
+            W3=(star.tgas_w3mpro, max(star.tgas_w3mpro_error, 0.02)),
         )
     if np.isfinite(star.tgas_Vmag):
         bands["V"] = (star.tgas_Vmag, max(star.tgas_e_Vmag, 0.02))
@@ -60,14 +68,33 @@ def fit_star(star, verbose=False):
         bands["r"] = (star.tgas_rpmag, max(star.tgas_e_rpmag, 0.02))
     if np.isfinite(star.tgas_ipmag):
         bands["i"] = (star.tgas_ipmag, max(star.tgas_e_ipmag, 0.02))
+    if verbose:
+        print(bands)
 
     # Build the model
     mist = MIST_Isochrone()
+    if fit_parallax:
+        args = dict(
+            bands,
+            parallax=(star.tgas_parallax, star.tgas_parallax_error),
+        )
+    else:
+        args = bands
     mod = StarModel(
         mist,
-        parallax=(star.tgas_parallax, star.tgas_parallax_error),
-        **bands
+        **args
     )
+
+    class ICModel(emcee3.Model):
+
+        def compute_log_prior(self, state):
+            state.log_prior = mod.lnprior(state.coords)
+            return state
+
+        def compute_log_likelihood(self, state):
+            state.log_likelihood = mod.lnlike(state.coords)
+            return state
+    walker = ICModel()
 
     # Initialize
     nwalkers = 500
@@ -104,18 +131,8 @@ def fit_star(star, verbose=False):
         if verbose:
             print("Resampling {0} points".format(m.sum()))
 
-    class ICModel(emcee3.Model):
-
-        def compute_log_prior(self, state):
-            state.log_prior = mod.lnprior(state.coords)
-            return state
-
-        def compute_log_likelihood(self, state):
-            state.log_likelihood = mod.lnlike(state.coords)
-            return state
-
     sampler = emcee3.Sampler(emcee3.moves.KDEMove())
-    ensemble = emcee3.Ensemble(ICModel(), coords_init)
+    ensemble = emcee3.Ensemble(walker, coords_init)
 
     chunksize = 200
     targetn = 6
@@ -181,20 +198,51 @@ def fit_star(star, verbose=False):
         f.create_dataset("computed_parameters", data=computed_parameters)
         f.create_dataset("magnitudes", data=mags)
 
+    make_plots(star, basename)
+
+def make_plots(star, basename):
+    output_filename = basename+".h5"
+    with h5py.File(output_filename, "r") as f:
+        fit_parameters = f["fit_parameters"][...]
+        computed_parameters = f["computed_parameters"][...]
+        mags = f["magnitudes"][...]
+        bands = dict((b, (f.attrs[b+"_mag"], f.attrs[b+"_mag_err"]))
+                     for b in mags.dtype.names)
+
     # Plot
-    fig = corner.corner(samples)
-    fig.savefig("corner-{0}.png".format(star.kepid))
+    fig = corner.corner(pd.DataFrame.from_records(fit_parameters))
+    fig.savefig("corner-{0}-fit.png".format(basename))
+    plt.close(fig)
+
+    fig = corner.corner(pd.DataFrame.from_records(computed_parameters))
+    fig.savefig("corner-{0}-computed.png".format(basename))
+    plt.close(fig)
+
+    df = pd.DataFrame.from_records(mags)
+    fig = corner.corner(df)
+    axes = fig.get_axes()
+    for i, b in enumerate(df.columns):
+        v, e = bands[b]
+        ax = axes[i*len(bands)+i]
+        ax.axvspan(v-e, v+e, color="g", alpha=0.3)
+        ax.axvline(v, color="g")
+    fig.savefig("corner-{0}-mags.png".format(basename))
     plt.close(fig)
 
 parser = argparse.ArgumentParser()
 parser.add_argument("number", type=int)
+parser.add_argument("--kepid", action="store_true")
 parser.add_argument("--verbose", action="store_true")
+parser.add_argument("--no-parallax", action="store_true")
 args = parser.parse_args()
 
 # Load the data
 kic_tgas = data.KICPhotoXMatchCatalog().df
 kic_tgas["parallax_snr"] = kic_tgas.tgas_parallax/kic_tgas.tgas_parallax_error
-kic_tgas = kic_tgas.sort_values("parallax_snr", ascending=False)
-kic_tgas = kic_tgas[kic_tgas.parallax_snr > 10.0]
-star = kic_tgas.iloc[args.number]
-fit_star(star, verbose=args.verbose)
+if args.kepid:
+    star = kic_tgas[kic_tgas.kepid == args.number].iloc[0]
+else:
+    kic_tgas = kic_tgas.sort_values("parallax_snr", ascending=False)
+    kic_tgas = kic_tgas[kic_tgas.parallax_snr > 10.0]
+    star = kic_tgas.iloc[args.number]
+fit_star(star, verbose=args.verbose, fit_parallax=not args.no_parallax)
